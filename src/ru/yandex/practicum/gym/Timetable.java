@@ -72,7 +72,7 @@ public class Timetable {
             }
         }
 
-        // Сортируем по количеству тренировок (по убыванию)
+        // Сортируем по количеству тренировок
         return coachCounts.entrySet()
                 .stream()
                 .sorted(Map.Entry.<Coach, Integer>comparingByValue().reversed())
@@ -80,7 +80,6 @@ public class Timetable {
                         Map.Entry::getKey,
                         Map.Entry::getValue,
                         (e1, e2) -> e1,
-                        LinkedHashMap::new  // сохраняем порядок сортировки
-                ));
-    };
+                        LinkedHashMap::new));
+    }
 }
