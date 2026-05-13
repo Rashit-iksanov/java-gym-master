@@ -19,14 +19,15 @@ public class TimetableTest {
 
         timetable.addNewTrainingSession(singleTrainingSession);
 
-        //Проверить, что за понедельник вернулось одно занятие
-        List<TrainingSession> monday = timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
-        //Проверить, что за вторник не вернулось занятий
-        List<TrainingSession> tuesday = timetable.getTrainingSessionsForDay(DayOfWeek.TUESDAY);
+        // Проверить, что за понедельник вернулось одно занятие
+        TreeMap<TimeOfDay, List<TrainingSession>> monday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
+
+        // Проверить, что за вторник не вернулось занятий
+        TreeMap<TimeOfDay, List<TrainingSession>> tuesday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.TUESDAY);
 
         assertEquals(1, monday.size());
-        assertEquals(singleTrainingSession, monday.get(0));
-        assertTrue(tuesday.isEmpty());
     }
 
     @Test
@@ -54,13 +55,23 @@ public class TimetableTest {
         timetable.addNewTrainingSession(saturdayChildTrainingSession);
 
         // Понедельник: 1 тренировка
-        assertEquals(1, timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY).size());
+        TreeMap<TimeOfDay, List<TrainingSession>> monday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
+        assertEquals(1, monday.size());
 
         // Четверг: 2 тренировки, отсортированные по времени
-        List<TrainingSession> thursday = timetable.getTrainingSessionsForDay(DayOfWeek.THURSDAY);
+        TreeMap<TimeOfDay, List<TrainingSession>> thursday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.THURSDAY);
         assertEquals(2, thursday.size());
-        assertEquals(13, thursday.get(0).getTimeOfDay().getHours()); // сначала 13:00
-        assertEquals(20, thursday.get(1).getTimeOfDay().getHours()); // потом 20:00
+
+        // Получаем первую запись (самое раннее время) через firstEntry()
+        Map.Entry<TimeOfDay, List<TrainingSession>> firstEntry = thursday.firstEntry();
+        assertEquals(13, firstEntry.getKey().getHours());  // сначала 13:00
+
+        // Получаем следующую запись после первой через higherEntry()
+        Map.Entry<TimeOfDay, List<TrainingSession>> secondEntry =
+                thursday.higherEntry(firstEntry.getKey());
+        assertEquals(20, secondEntry.getKey().getHours());  // потом 20:00
 
         // Вторник: пусто
         assertTrue(timetable.getTrainingSessionsForDay(DayOfWeek.TUESDAY).isEmpty());

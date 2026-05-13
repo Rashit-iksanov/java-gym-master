@@ -28,20 +28,14 @@ public class Timetable {
         sessionsAtTime.add(trainingSession);
     }
 
-    public List<TrainingSession> getTrainingSessionsForDay(DayOfWeek dayOfWeek) {
-        //как реализовать, тоже непонятно, но сложность должна быть О(1)
+    public TreeMap<TimeOfDay, List<TrainingSession>> getTrainingSessionsForDay(DayOfWeek dayOfWeek) {
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule = timetable.get(dayOfWeek);
 
         if (daySchedule == null || daySchedule.isEmpty()) {
-            return new ArrayList<>();
+            return new TreeMap<>(); // Возвращаем пустой TreeMap, если расписание пустое
         }
 
-        // TreeMap уже отсортирован по времени — просто собираем все значения
-        List<TrainingSession> result = new ArrayList<>();
-        for (List<TrainingSession> sessions : daySchedule.values()) {
-            result.addAll(sessions);
-        }
-        return result;
+        return daySchedule;
     }
 
     public List<TrainingSession> getTrainingSessionsForDayAndTime(DayOfWeek dayOfWeek, TimeOfDay timeOfDay) {
