@@ -12,20 +12,31 @@ public class Timetable {
     }
 
     public void addNewTrainingSession(TrainingSession trainingSession) {
-        //сохраняем занятие в расписании
         DayOfWeek day = trainingSession.getDayOfWeek();
         TimeOfDay time = trainingSession.getTimeOfDay();
+        Coach newCoach = trainingSession.getCoach();
 
-        // Получаем или создаём TreeMap для дня
+        // Получаем или создаём расписание на день
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule =
                 timetable.computeIfAbsent(day, k -> new TreeMap<>());
 
-        // Получаем или создаём список для времени
-        List<TrainingSession> sessionsAtTime =
-                daySchedule.computeIfAbsent(time, k -> new ArrayList<>());
+        // Проверяем, есть ли уже тренировки в это время
+        List<TrainingSession> sessionsAtTime = daySchedule.get(time);
+        if (sessionsAtTime != null) {
+            // Ищем, не ведёт ли этот тренер уже занятие в это время
+            boolean coachBusy = sessionsAtTime.stream()
+                    .anyMatch(session -> session.getCoach().equals(newCoach));
 
-        // Добавляем тренировку
-        sessionsAtTime.add(trainingSession);
+            if (coachBusy) {
+                throw new IllegalArgumentException(
+                        "Тренер " + newCoach.getSurname() + " уже ведёт тренировку в "
+                                + day + " в " + time.getHours() + ":" + String.format("%02d", time.getMinutes())
+                );
+            }
+        }
+
+        // Если тренер свободен — добавляем тренировку
+        daySchedule.computeIfAbsent(time, k -> new ArrayList<>()).add(trainingSession);
     }
 
     public TreeMap<TimeOfDay, List<TrainingSession>> getTrainingSessionsForDay(DayOfWeek dayOfWeek) {

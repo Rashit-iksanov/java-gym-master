@@ -123,6 +123,28 @@ public class TimetableTest {
     }
 
     @Test
+    void testAddDuplicateCoachAtSameTimeThrowsException() {
+        Timetable timetable = new Timetable();
+        Coach coach1 = new Coach("Иванов", "Иван", "Иванович");
+        Group group = new Group("Гимнастика", Age.CHILD, 45);
+
+        TrainingSession s1 = new TrainingSession(group, coach1,
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+        TrainingSession s2 = new TrainingSession(group, coach1, // Тот же тренер, то же время
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+
+        timetable.addNewTrainingSession(s1);
+
+        // Ожидаем исключение при попытке добавить вторую тренировку того же тренера
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            timetable.addNewTrainingSession(s2);
+        });
+
+        assertTrue(exception.getMessage().contains("Иванов"));
+        assertTrue(exception.getMessage().contains("17:0"));
+    }
+
+    @Test
     void testGetCountByCoaches() {
         Timetable timetable = new Timetable();
         Coach coach1 = new Coach("Сидоров", "Алексей", "Дмитриевич");
