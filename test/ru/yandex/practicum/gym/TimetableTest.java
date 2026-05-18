@@ -1,8 +1,9 @@
 package ru.yandex.practicum.gym;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
+import java.util.List;
+import java.util.Map;
+import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 
 public class TimetableTest {
@@ -18,8 +19,15 @@ public class TimetableTest {
 
         timetable.addNewTrainingSession(singleTrainingSession);
 
-        //Проверить, что за понедельник вернулось одно занятие
-        //Проверить, что за вторник не вернулось занятий
+        // Проверить, что за понедельник вернулось одно занятие
+        TreeMap<TimeOfDay, List<TrainingSession>> monday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
+
+        // Проверить, что за вторник не вернулось занятий
+        TreeMap<TimeOfDay, List<TrainingSession>> tuesday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.TUESDAY);
+
+        assertEquals(1, monday.size());
     }
 
     @Test
@@ -46,9 +54,27 @@ public class TimetableTest {
         timetable.addNewTrainingSession(thursdayChildTrainingSession);
         timetable.addNewTrainingSession(saturdayChildTrainingSession);
 
-        // Проверить, что за понедельник вернулось одно занятие
-        // Проверить, что за четверг вернулось два занятия в правильном порядке: сначала в 13:00, потом в 20:00
-        // Проверить, что за вторник не вернулось занятий
+        // Понедельник: 1 тренировка
+        TreeMap<TimeOfDay, List<TrainingSession>> monday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
+        assertEquals(1, monday.size());
+
+        // Четверг: 2 тренировки, отсортированные по времени
+        TreeMap<TimeOfDay, List<TrainingSession>> thursday =
+                timetable.getTrainingSessionsForDay(DayOfWeek.THURSDAY);
+        assertEquals(2, thursday.size());
+
+        // Получаем первую запись (самое раннее время) через firstEntry()
+        Map.Entry<TimeOfDay, List<TrainingSession>> firstEntry = thursday.firstEntry();
+        assertEquals(13, firstEntry.getKey().getHours());  // сначала 13:00
+
+        // Получаем следующую запись после первой через higherEntry()
+        Map.Entry<TimeOfDay, List<TrainingSession>> secondEntry =
+                thursday.higherEntry(firstEntry.getKey());
+        assertEquals(20, secondEntry.getKey().getHours());  // потом 20:00
+
+        // Вторник: пусто
+        assertTrue(timetable.getTrainingSessionsForDay(DayOfWeek.TUESDAY).isEmpty());
     }
 
     @Test
@@ -62,8 +88,115 @@ public class TimetableTest {
 
         timetable.addNewTrainingSession(singleTrainingSession);
 
-        //Проверить, что за понедельник в 13:00 вернулось одно занятие
-        //Проверить, что за понедельник в 14:00 не вернулось занятий
+        // Точное совпадение времени
+        List<TrainingSession> found = timetable.getTrainingSessionsForDayAndTime(
+                DayOfWeek.MONDAY, new TimeOfDay(13, 0));
+        assertEquals(1, found.size());
+        assertEquals(singleTrainingSession, found.get(0));
+
+        // Другое время — пусто
+        assertTrue(timetable.getTrainingSessionsForDayAndTime(
+                DayOfWeek.MONDAY, new TimeOfDay(14, 0)).isEmpty());
     }
 
+    @Test
+    void testMultipleSessionsAtSameTime() {
+        Timetable timetable = new Timetable();
+        Coach coach1 = new Coach("Иванов", "Иван", "Иванович");
+        Coach coach2 = new Coach("Петров", "Пётр", "Петрович");
+        Group group = new Group("Гимнастика", Age.CHILD, 45);
+
+        TrainingSession s1 = new TrainingSession(group, coach1,
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+        TrainingSession s2 = new TrainingSession(group, coach2,
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+
+        timetable.addNewTrainingSession(s1);
+        timetable.addNewTrainingSession(s2);
+
+        List<TrainingSession> at17 = timetable.getTrainingSessionsForDayAndTime(
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+
+        assertEquals(2, at17.size());
+        assertTrue(at17.contains(s1));
+        assertTrue(at17.contains(s2));
+    }
+
+    @Test
+    void testAddDuplicateCoachAtSameTimeThrowsException() {
+        Timetable timetable = new Timetable();
+        Coach coach1 = new Coach("Иванов", "Иван", "Иванович");
+        Group group = new Group("Гимнастика", Age.CHILD, 45);
+
+        TrainingSession s1 = new TrainingSession(group, coach1,
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+        TrainingSession s2 = new TrainingSession(group, coach1, // Тот же тренер, то же время
+                DayOfWeek.WEDNESDAY, new TimeOfDay(17, 0));
+
+        timetable.addNewTrainingSession(s1);
+
+        // Ожидаем исключение при попытке добавить вторую тренировку того же тренера
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            timetable.addNewTrainingSession(s2);
+        });
+
+        assertTrue(exception.getMessage().contains("Иванов"));
+        assertTrue(exception.getMessage().contains("17:0"));
+    }
+
+    @Test
+    void testGetCountByCoaches() {
+        Timetable timetable = new Timetable();
+        Coach coach1 = new Coach("Сидоров", "Алексей", "Дмитриевич");
+        Coach coach2 = new Coach("Васильев", "Николай", "Сергеевич");
+        Group group = new Group("Борьба", Age.ADULT, 60);
+
+        // Coach1: 3 тренировки
+        timetable.addNewTrainingSession(new TrainingSession(group, coach1,
+                DayOfWeek.MONDAY, new TimeOfDay(10, 0)));
+        timetable.addNewTrainingSession(new TrainingSession(group, coach1,
+                DayOfWeek.WEDNESDAY, new TimeOfDay(10, 0)));
+        timetable.addNewTrainingSession(new TrainingSession(group, coach1,
+                DayOfWeek.FRIDAY, new TimeOfDay(10, 0)));
+
+        // Coach2: 1 тренировка
+        timetable.addNewTrainingSession(new TrainingSession(group, coach2,
+                DayOfWeek.TUESDAY, new TimeOfDay(18, 0)));
+
+        Map<Coach, Integer> counts = timetable.getCountByCoaches();
+
+        assertEquals(2, counts.size());
+
+        // Проверяем порядок: сначала тренер с большим количеством
+        List<Coach> coaches = new ArrayList<>(counts.keySet());
+        assertEquals(coach1, coaches.get(0));
+        assertEquals(3, counts.get(coach1));
+        assertEquals(coach2, coaches.get(1));
+        assertEquals(1, counts.get(coach2));
+    }
+
+    @Test
+    void testGetCountByCoachesEmpty() {
+        Timetable timetable = new Timetable();
+        Map<Coach, Integer> counts = timetable.getCountByCoaches();
+        assertTrue(counts.isEmpty());
+    }
+
+    @Test
+    void testGetCountByCoachesSameCoachDifferentTimes() {
+        Timetable timetable = new Timetable();
+        Coach coach = new Coach("Один", "Тренер", "Один");
+        Group group = new Group("Плавание", Age.CHILD, 30);
+
+        // Один тренер, 5 разных времён
+        for (int hour = 9; hour < 14; hour++) {
+            timetable.addNewTrainingSession(new TrainingSession(group, coach,
+                    DayOfWeek.MONDAY, new TimeOfDay(hour, 0)));
+        }
+
+        Map<Coach, Integer> counts = timetable.getCountByCoaches();
+        assertEquals(1, counts.size());
+        assertEquals(5, counts.get(coach));
+    }
 }
+
